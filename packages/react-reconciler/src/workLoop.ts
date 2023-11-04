@@ -3,17 +3,36 @@
  * @Date: 2023-11-02 19:42:15
  * @Description:
  */
-import { FiberNode } from './fiber'
+import { FiberNode, FiberRootNode, crateWorkInProgress } from './fiber'
 import { beginWork } from './beginWork'
 import { completeWork } from './completeWork'
+import { HostRoot } from './workTags'
 
 let workInProgress: FiberNode | null = null
 
-const prepareFreshStack = (fiber: FiberNode) => {
-	workInProgress = fiber
+const prepareFreshStack = (root: FiberRootNode) => {
+	workInProgress = crateWorkInProgress(root.current, {})
 }
 
-export const renderRoot = (root: FiberNode) => {
+export const scheduleUpdateOnFiber = (fiber: FiberNode) => {
+	const root = markUpdateFromFiberToRoot(fiber)
+	renderRoot(root)
+}
+
+const markUpdateFromFiberToRoot = (fiber: FiberNode) => {
+	let node = fiber
+	let parent = node.return
+	while (parent !== null) {
+		node = parent
+		parent = node.return
+	}
+	if (node.tag === HostRoot) {
+		return node.stateNode
+	}
+	return null
+}
+
+export const renderRoot = (root: FiberRootNode) => {
 	// initialize workInProgress
 	prepareFreshStack(root)
 

@@ -7,6 +7,7 @@
 import { Props, Key, Ref } from 'shared/ReactTypes'
 import { WorkTag } from './workTags'
 import { Flags, NoFlags } from './fiberFlags'
+import { Container } from 'hostConfig'
 
 export class FiberNode {
 	type: any
@@ -15,6 +16,8 @@ export class FiberNode {
 	stateNode: any
 	pendingProps: Props
 	memorizedProps: Props | null
+	memorizedState: any
+	updateQueue: unknown
 
 	return: FiberNode | null
 	sibling: FiberNode | null
@@ -41,9 +44,51 @@ export class FiberNode {
 
 		this.pendingProps = pendingProps
 		this.memorizedProps = null
+		this.updateQueue = null
+		this.memorizedState = null
 
 		this.alternate = null
 		// effect
 		this.flags = NoFlags
 	}
+}
+
+export class FiberRootNode {
+	container: Container // base on different environment
+	current: FiberNode // FiberRootNode.current -> hostRootFiber  hostRootFiber.stateNode -> FiberRootNode
+	finishedWork: FiberNode | null
+	constructor(container: Container, hostRootFiber: FiberNode) {
+		this.container = container
+		this.current = hostRootFiber
+		hostRootFiber.stateNode = this
+		this.finishedWork = null
+	}
+}
+
+export const crateWorkInProgress = (
+	current: FiberNode,
+	pendingProps: Props
+): FiberNode => {
+	let wip = current.alternate
+	if (wip === null) {
+		// mount
+		wip = new FiberNode(current.tag, pendingProps, current.key)
+		wip.type = current.type
+		wip.stateNode = current.stateNode
+
+		wip.alternate = current
+		current.alternate = wip
+	} else {
+		// update
+		wip.pendingProps = pendingProps
+		// reset effect
+		wip.flags = NoFlags
+	}
+
+	wip.type = current.type
+	wip.updateQueue = current.updateQueue
+	wip.child = current.child
+	wip.memorizedProps = current.memorizedProps
+	wip.memorizedState = current.memorizedState
+	return wip
 }
