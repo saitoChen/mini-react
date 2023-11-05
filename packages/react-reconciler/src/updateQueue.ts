@@ -39,7 +39,7 @@ export const enqueueUpdate = <State>(
 // consume update
 export const processUpdateQueue = <State>(
 	baseState: State,
-	pendingUpdate: Update<State>
+	pendingUpdate: Update<State> | null
 ): { memorizedState: State } => {
 	const result: ReturnType<typeof processUpdateQueue<State>> = {
 		memorizedState: baseState

@@ -41,10 +41,17 @@ export const renderRoot = (root: FiberRootNode) => {
 			workLoop()
 			break
 		} catch (_err) {
-			console.warn('workLoop发生错误')
+			if (__DEV__) {
+				console.warn('workLoop发生错误')
+			}
 			workInProgress = null
 		}
 	} while (true)
+
+	const finishedWork = root.current.alternate
+	root.finishedWork = finishedWork
+
+	commitRoot(root)
 }
 
 const workLoop = () => {

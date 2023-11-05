@@ -4,8 +4,8 @@
  * @Description: fiber structure
  */
 
-import { Props, Key, Ref } from 'shared/ReactTypes'
-import { WorkTag } from './workTags'
+import { Props, Key, Ref, ReactElementType } from 'shared/ReactTypes'
+import { FunctionComponent, HostComponent, WorkTag } from './workTags'
 import { Flags, NoFlags } from './fiberFlags'
 import { Container } from 'hostConfig'
 
@@ -27,6 +27,7 @@ export class FiberNode {
 
 	alternate: FiberNode | null
 	flags: Flags
+	subtreeFlags: Flags
 
 	constructor(tag: WorkTag, pendingProps: Props, key: Key) {
 		this.key = key
@@ -50,6 +51,7 @@ export class FiberNode {
 		this.alternate = null
 		// effect
 		this.flags = NoFlags
+		this.subtreeFlags = NoFlags
 	}
 }
 
@@ -83,6 +85,7 @@ export const crateWorkInProgress = (
 		wip.pendingProps = pendingProps
 		// reset effect
 		wip.flags = NoFlags
+		wip.subtreeFlags = NoFlags
 	}
 
 	wip.type = current.type
@@ -91,4 +94,20 @@ export const crateWorkInProgress = (
 	wip.memorizedProps = current.memorizedProps
 	wip.memorizedState = current.memorizedState
 	return wip
+}
+
+export const createFiberFromElement = (element: ReactElementType) => {
+	const { type, key, props } = element
+	let fiberTag: WorkTag = FunctionComponent
+	if (typeof type === 'string') {
+		// div
+		fiberTag = HostComponent
+	} else if (typeof type !== 'function' && __DEV__) {
+		console.warn('unknown type', element)
+	}
+
+	const fiber = new FiberNode(fiberTag, props, key)
+	fiber.type = type
+
+	return fiber
 }
