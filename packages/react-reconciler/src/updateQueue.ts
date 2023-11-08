@@ -49,7 +49,7 @@ export const processUpdateQueue = <State>(
 		if (typeof action === 'function') {
 			result.memorizedState = (action as (prevState: State) => State)(baseState)
 		} else {
-			result.memorizedState = baseState
+			result.memorizedState = action
 		}
 	}
 

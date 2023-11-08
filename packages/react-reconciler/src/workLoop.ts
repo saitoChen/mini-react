@@ -8,6 +8,7 @@ import { beginWork } from './beginWork'
 import { completeWork } from './completeWork'
 import { HostRoot } from './workTags'
 import { MutationMask, NoFlags } from './fiberFlags'
+import { commitMutationEffects } from './commitWork'
 
 let workInProgress: FiberNode | null = null
 
@@ -76,6 +77,7 @@ const commitRoot = (root: FiberRootNode) => {
 
 		// switch fiber tree
 		// hostRootNode
+		commitMutationEffects(finishedWork)
 		root.current = finishedWork
 		// layout
 	} else {
