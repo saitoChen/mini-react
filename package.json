@@ -6,7 +6,7 @@
 	"scripts": {
 		"test": "echo \"Error: no test specified\" && exit 1",
 		"lint": "eslint --ext .jsx,.ts,.js,.tsx --fix --quiet ./packages",
-		"build:dev": "rimraf dist && rollup --bundleConfigAsCjs --config scripts/rollup/react.config.js"
+		"build:dev": "rimraf dist && rollup --bundleConfigAsCjs --config scripts/rollup/dev.config.js"
 	},
 	"keywords": [],
 	"author": "",
@@ -14,6 +14,7 @@
 	"devDependencies": {
 		"@commitlint/cli": "^18.2.0",
 		"@commitlint/config-conventional": "^18.1.0",
+		"@rollup/plugin-alias": "^5.0.1",
 		"@rollup/plugin-commonjs": "^25.0.7",
 		"@rollup/plugin-replace": "^5.0.5",
 		"@types/node": "^20.8.10",

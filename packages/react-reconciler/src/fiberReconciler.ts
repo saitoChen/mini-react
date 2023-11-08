@@ -14,10 +14,11 @@ import {
 } from './updateQueue'
 import { ReactElementType } from 'shared/ReactTypes'
 import { scheduleUpdateOnFiber } from './workLoop'
+import { HostRoot } from './workTags'
 
 // ReactDom.createRoot
 export const createContainer = (container: Container) => {
-	const hostRootFiber = new FiberNode(container, {}, null)
+	const hostRootFiber = new FiberNode(HostRoot, {}, null)
 	const root = new FiberRootNode(container, hostRootFiber)
 	hostRootFiber.updateQueue = createUpdateQueue()
 

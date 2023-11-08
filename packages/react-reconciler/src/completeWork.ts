@@ -1,7 +1,8 @@
 import {
 	createInstance,
 	appendInitialChild,
-	createTextInstance
+	createTextInstance,
+	Container
 } from 'hostConfig'
 import { FiberNode } from './fiber'
 import { HostComponent, HostRoot, HostText } from './workTags'
@@ -20,7 +21,8 @@ export const completeWork = (wip: FiberNode) => {
 				// update
 			} else {
 				// 1. create Dom 2. insert dom
-				const instance = createInstance(wip.type, newProps)
+				// 				const instance = createInstance(wip.type, newProps)
+				const instance = createInstance(wip.type)
 				appendAllChildren(instance, wip)
 				wip.stateNode = instance
 			}
@@ -39,7 +41,7 @@ export const completeWork = (wip: FiberNode) => {
 	}
 }
 
-const appendAllChildren = (parent: FiberNode, wip: FiberNode) => {
+const appendAllChildren = (parent: Container, wip: FiberNode) => {
 	let node = wip.child
 	while (node !== null) {
 		if (node.tag === HostComponent || node.tag === HostText) {

@@ -19,6 +19,7 @@ export const beginWork = (wip: FiberNode) => {
 				console.warn('unknown type by beginWork')
 			}
 	}
+	return null
 }
 
 const updateHostRoot = (wip: FiberNode) => {

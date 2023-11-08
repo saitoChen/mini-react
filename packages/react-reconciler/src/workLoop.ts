@@ -7,6 +7,7 @@ import { FiberNode, FiberRootNode, crateWorkInProgress } from './fiber'
 import { beginWork } from './beginWork'
 import { completeWork } from './completeWork'
 import { HostRoot } from './workTags'
+import { MutationMask, NoFlags } from './fiberFlags'
 
 let workInProgress: FiberNode | null = null
 
@@ -49,9 +50,37 @@ export const renderRoot = (root: FiberRootNode) => {
 	} while (true)
 
 	const finishedWork = root.current.alternate
+	// finishedWork is wip
 	root.finishedWork = finishedWork
 
 	commitRoot(root)
+}
+
+const commitRoot = (root: FiberRootNode) => {
+	// 1. switch fiber tree
+	// 2. execute Placement operation
+	const finishedWork = root.finishedWork
+	if (finishedWork === null) return
+	if (__DEV__) console.warn('commit start', finishedWork)
+
+	// reset
+	root.finishedWork = null
+
+	const subtreeHasEffect =
+		(finishedWork.subtreeFlags & MutationMask) !== NoFlags
+	const rootHasEffect = (finishedWork.flags & MutationMask) !== NoFlags
+
+	if (subtreeHasEffect || rootHasEffect) {
+		// beforeMutation
+		// mutation
+
+		// switch fiber tree
+		// hostRootNode
+		root.current = finishedWork
+		// layout
+	} else {
+		root.current = finishedWork
+	}
 }
 
 const workLoop = () => {
