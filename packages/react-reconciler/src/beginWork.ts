@@ -1,8 +1,14 @@
 import { ReactElementType } from 'shared/ReactTypes'
 import { FiberNode } from './fiber'
 import { UpdateQueue, processUpdateQueue } from './updateQueue'
-import { HostRoot, HostText, HostComponent } from './workTags'
+import {
+	HostRoot,
+	HostText,
+	HostComponent,
+	FunctionComponent
+} from './workTags'
 import { reconcileChildFibers, mountChildFibers } from './childFiber'
+import { renderWithHooks } from './fiberhooks'
 
 export const beginWork = (wip: FiberNode) => {
 	switch (wip.tag) {
@@ -14,6 +20,8 @@ export const beginWork = (wip: FiberNode) => {
 			return updateHostComponent(wip)
 		case HostText:
 			return null
+		case FunctionComponent:
+			return updateFunctionComponent(wip)
 		default:
 			if (__DEV__) {
 				console.warn('unknown type by beginWork')
@@ -34,6 +42,12 @@ const updateHostRoot = (wip: FiberNode) => {
 
 	const nextChildren = wip.memorizedState
 	// compare current child fiberNode with child reactElement -> (wip.memorizedState)
+	reconcileChildren(wip, nextChildren)
+	return wip.child
+}
+
+const updateFunctionComponent = (wip: FiberNode) => {
+	const nextChildren = renderWithHooks(wip)
 	reconcileChildren(wip, nextChildren)
 	return wip.child
 }
