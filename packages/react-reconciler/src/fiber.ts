@@ -18,6 +18,7 @@ export class FiberNode {
 	memorizedProps: Props | null
 	memorizedState: any
 	updateQueue: unknown
+	deletions: FiberNode[] | null
 
 	return: FiberNode | null
 	sibling: FiberNode | null
@@ -47,6 +48,7 @@ export class FiberNode {
 		this.memorizedProps = null
 		this.updateQueue = null
 		this.memorizedState = null
+		this.deletions = null
 
 		this.alternate = null
 		// effect
@@ -67,7 +69,7 @@ export class FiberRootNode {
 	}
 }
 
-export const crateWorkInProgress = (
+export const createWorkInProgress = (
 	current: FiberNode,
 	pendingProps: Props
 ): FiberNode => {
@@ -85,6 +87,7 @@ export const crateWorkInProgress = (
 		// reset effect
 		wip.flags = NoFlags
 		wip.subtreeFlags = NoFlags
+		wip.deletions = null
 	}
 
 	wip.type = current.type

@@ -1,3 +1,8 @@
+/*
+ * @Author: chenjianfeng chenjianfeng93@163.com
+ * @Date: 2023-11-02 19:38:35
+ * @Description:
+ */
 import {
 	createInstance,
 	appendInitialChild,
@@ -6,7 +11,11 @@ import {
 } from 'hostConfig'
 import { FiberNode } from './fiber'
 import { HostComponent, HostRoot, HostText } from './workTags'
-import { NoFlags } from './fiberFlags'
+import { NoFlags, Update } from './fiberFlags'
+
+const markUpdate = (fiber: FiberNode) => {
+	fiber.flags |= Update
+}
 
 export const completeWork = (wip: FiberNode) => {
 	const newProps = wip.pendingProps
@@ -29,8 +38,16 @@ export const completeWork = (wip: FiberNode) => {
 			bubbleProperties(wip)
 			return null
 		case HostText:
-			const instance = createTextInstance(newProps.content)
-			wip.stateNode = instance
+			if (current !== null && wip.stateNode) {
+				const oldText = current.memorizedProps.content
+				const newText = newProps.content
+				if (oldText !== newText) {
+					markUpdate(wip)
+				}
+			} else {
+				const instance = createTextInstance(newProps.content)
+				wip.stateNode = instance
+			}
 			bubbleProperties(wip)
 			return null
 		default:

@@ -8,7 +8,7 @@ import {
 	resolveDispatcher,
 	currentDispatcher
 } from './src/currentDispatcher'
-import { jsxDEV } from './src/jsx'
+import { jsx, isValidElement as isValidElementFn } from './src/jsx'
 
 export const useState: Dispatcher['useState'] = (initialState) => {
 	const dispatcher = resolveDispatcher()
@@ -19,7 +19,8 @@ export const _Inner_data = {
 	currentDispatcher
 }
 
-export default {
-	version: '0.0.1',
-	createElement: jsxDEV
-}
+export const version = '0.0.0'
+
+// distinguish jsx and jsxDev by environment
+export const createElement = jsx
+export const isValidElement = isValidElementFn

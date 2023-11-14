@@ -3,7 +3,7 @@
  * @Date: 2023-11-02 19:42:15
  * @Description:
  */
-import { FiberNode, FiberRootNode, crateWorkInProgress } from './fiber'
+import { FiberNode, FiberRootNode, createWorkInProgress } from './fiber'
 import { beginWork } from './beginWork'
 import { completeWork } from './completeWork'
 import { HostRoot } from './workTags'
@@ -13,7 +13,7 @@ import { commitMutationEffects } from './commitWork'
 let workInProgress: FiberNode | null = null
 
 const prepareFreshStack = (root: FiberRootNode) => {
-	workInProgress = crateWorkInProgress(root.current, {})
+	workInProgress = createWorkInProgress(root.current, {})
 }
 
 export const scheduleUpdateOnFiber = (fiber: FiberNode) => {
