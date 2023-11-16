@@ -1,9 +1,15 @@
+/*
+ * @Author: chenjianfeng chenjianfeng93@163.com
+ * @Date: 2023-11-11 13:04:30
+ * @Description:
+ */
 import React from 'react'
 import ReactDOM from 'react-dom/client'
 import { useState } from 'react'
 
 const App = () => {
-	const [num] = useState(100)
+	const [num, setNum] = useState(100)
+	window.setNum = setNum
 	return <div>{num}</div>
 }
 

@@ -5,6 +5,7 @@ import {
 	createUpdate,
 	createUpdateQueue,
 	enqueueUpdate,
+	processUpdateQueue,
 	UpdateQueue
 } from './updateQueue'
 import { scheduleUpdateOnFiber } from './workLoop'
@@ -12,6 +13,7 @@ import { Action } from 'shared/ReactTypes'
 
 let currentlyRenderFiber: FiberNode | null = null
 let workInProgressHook: Hook | null = null
+let currentHook: Hook | null = null
 
 console.log('internals ->', internals)
 
@@ -31,6 +33,7 @@ export const renderWithHooks = (wip: FiberNode) => {
 
 	if (current !== null) {
 		// update
+		currentDispatcher.current = HookDispatcherOnUpdate
 	} else {
 		// mount
 		currentDispatcher.current = HookDispatcherOnMount
@@ -43,6 +46,8 @@ export const renderWithHooks = (wip: FiberNode) => {
 	const children = Component(props)
 
 	currentlyRenderFiber = null
+	workInProgressHook = null
+	currentHook = null
 	return children
 }
 
@@ -99,6 +104,66 @@ const mountWorkInProgressHook = (): Hook => {
 	return workInProgressHook
 }
 
+const updateState = <State>(): [State, Dispatch<State>] => {
+	const hook = updateWorkInProgressHook()
+
+	// calculate state
+	const queue = hook.updateQueue as UpdateQueue<State>
+	const pending = queue.shared.pending
+
+	if (pending !== null) {
+		const { memorizedState } = processUpdateQueue(hook.memorizedState, pending)
+		hook.memorizedState = memorizedState
+	}
+
+	return [hook.memorizedState, queue.dispatch as Dispatch<State>]
+}
+
 const HookDispatcherOnMount: Dispatcher = {
 	useState: mountState
+}
+
+const HookDispatcherOnUpdate: Dispatcher = {
+	useState: updateState
+}
+
+const updateWorkInProgressHook = (): Hook => {
+	let nextCurrentHook: Hook | null
+	if (currentHook === null) {
+		// the first hook
+		const current = currentlyRenderFiber?.alternate
+		if (current !== null) {
+			nextCurrentHook = current?.memorizedState
+		} else {
+			nextCurrentHook = null
+		}
+	} else {
+		// the subsequent hook
+		nextCurrentHook = currentHook.next
+	}
+
+	if (nextCurrentHook === null) {
+		throw new Error('hook error ( maybe hook in a if block )')
+	}
+
+	currentHook = nextCurrentHook as Hook
+
+	const newHook: Hook = {
+		memorizedState: currentHook.memorizedState,
+		updateQueue: currentHook.updateQueue,
+		next: null
+	}
+	if (workInProgressHook === null) {
+		if (currentlyRenderFiber === null) {
+			throw new Error('create hook error')
+		} else {
+			workInProgressHook = newHook
+			currentlyRenderFiber.memorizedState = workInProgressHook
+		}
+	} else {
+		workInProgressHook.next = newHook
+		workInProgressHook = newHook
+	}
+
+	return workInProgressHook
 }

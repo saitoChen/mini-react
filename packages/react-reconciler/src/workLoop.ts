@@ -70,7 +70,7 @@ const commitRoot = (root: FiberRootNode) => {
 	const subtreeHasEffect =
 		(finishedWork.subtreeFlags & MutationMask) !== NoFlags
 	const rootHasEffect = (finishedWork.flags & MutationMask) !== NoFlags
-
+	// have effect
 	if (subtreeHasEffect || rootHasEffect) {
 		// beforeMutation
 		// mutation
