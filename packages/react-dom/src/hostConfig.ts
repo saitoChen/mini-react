@@ -5,22 +5,26 @@
  */
 import { FiberNode } from 'react-reconciler/src/fiber'
 import { HostText } from 'react-reconciler/src/workTags'
+import { Props } from 'shared/ReactTypes'
+import { DOMElement, updateFiberProps } from './SyntheticEvents'
 
 export type Container = Element
 export type Instance = Element
 export type TextInstance = Text
 
 // export const createInstance = (type: string, props: any): Instance => {
-export const createInstance = (type: string): Instance => {
+export const createInstance = (type: string, props: Props): Instance => {
 	const element = document.createElement(type)
+	updateFiberProps(element as unknown as DOMElement, props)
 	return element
 }
 
 export const commitUpdate = (fiber: FiberNode) => {
 	switch (fiber.tag) {
 		case HostText:
-			const text = fiber.memorizedProps.content
+			const text = fiber.memorizedProps?.content
 			return commitTextUpdate(fiber.stateNode, text)
+
 		default:
 			if (__DEV__) {
 				console.warn('unfinish Update type', fiber)

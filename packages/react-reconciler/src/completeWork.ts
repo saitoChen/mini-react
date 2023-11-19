@@ -10,8 +10,14 @@ import {
 	Container
 } from 'hostConfig'
 import { FiberNode } from './fiber'
-import { HostComponent, HostRoot, HostText } from './workTags'
+import {
+	HostComponent,
+	HostRoot,
+	HostText,
+	FunctionComponent
+} from './workTags'
 import { NoFlags, Update } from './fiberFlags'
+import { updateFiberProps } from 'react-dom/src/SyntheticEvents'
 
 const markUpdate = (fiber: FiberNode) => {
 	fiber.flags |= Update
@@ -20,7 +26,6 @@ const markUpdate = (fiber: FiberNode) => {
 export const completeWork = (wip: FiberNode) => {
 	const newProps = wip.pendingProps
 	const current = wip.alternate
-
 	switch (wip.tag) {
 		case HostRoot:
 			bubbleProperties(wip)
@@ -28,10 +33,11 @@ export const completeWork = (wip: FiberNode) => {
 		case HostComponent:
 			if (current !== null && wip.stateNode) {
 				// update
+				updateFiberProps(wip.stateNode, newProps)
 			} else {
 				// 1. create Dom 2. insert dom
 				// 				const instance = createInstance(wip.type, newProps)
-				const instance = createInstance(wip.type)
+				const instance = createInstance(wip.type, newProps)
 				appendAllChildren(instance, wip)
 				wip.stateNode = instance
 			}
@@ -39,7 +45,7 @@ export const completeWork = (wip: FiberNode) => {
 			return null
 		case HostText:
 			if (current !== null && wip.stateNode) {
-				const oldText = current.memorizedProps.content
+				const oldText = current.memorizedProps?.content
 				const newText = newProps.content
 				if (oldText !== newText) {
 					markUpdate(wip)
@@ -48,6 +54,9 @@ export const completeWork = (wip: FiberNode) => {
 				const instance = createTextInstance(newProps.content)
 				wip.stateNode = instance
 			}
+			bubbleProperties(wip)
+			return null
+		case FunctionComponent:
 			bubbleProperties(wip)
 			return null
 		default:
