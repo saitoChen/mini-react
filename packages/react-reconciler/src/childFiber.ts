@@ -25,34 +25,51 @@ const ChildReconciler = (shouldTrackEffects: boolean) => {
 			deletions.push(childToDelete)
 		}
 	}
+
+	const deleteRemainingChildren = (
+		returnFiber: FiberNode,
+		currentFirstChild: FiberNode | null
+	) => {
+		if (!shouldTrackEffects) return
+		let childToDelete = currentFirstChild
+		while (childToDelete !== null) {
+			deleteChild(returnFiber, childToDelete)
+			childToDelete = childToDelete.sibling
+		}
+	}
+
 	const reconcileSingleElement = (
 		returnFiber: FiberNode,
 		currentFiber: FiberNode | null,
 		element: ReactElementType
 	) => {
 		const key = element.key
-		work: if (currentFiber !== null) {
+		while (currentFiber !== null) {
 			// update
 			if (currentFiber.key === key) {
 				if (element.$$typeof === REACT_ELEMENT_TYPE) {
 					if (currentFiber.type === element.type) {
-						// equal
+						// equal type and equal key
 						// change to the wip
 						const existing = useFiber(currentFiber, element.props)
 						existing.return = returnFiber
+						// current node can reuse, remain nodes will delete
+						deleteRemainingChildren(returnFiber, currentFiber.sibling)
 						return existing
 					}
-					deleteChild(returnFiber, currentFiber)
-					break work
+					// equal key and not equal type, remove all old nodes
+					deleteRemainingChildren(returnFiber, currentFiber)
+					break
 				} else {
 					if (__DEV__) {
 						console.warn('unknown react type', element)
-						break work
+						break
 					}
 				}
 			} else {
-				// delete
+				// delete current node
 				deleteChild(returnFiber, currentFiber)
+				currentFiber = currentFiber.sibling
 			}
 		}
 
@@ -73,10 +90,12 @@ const ChildReconciler = (shouldTrackEffects: boolean) => {
 			if (currentFiber.tag === HostText) {
 				const existing = useFiber(currentFiber, { content })
 				existing.return = returnFiber
+				deleteRemainingChildren(returnFiber, currentFiber.sibling)
 				return existing
 			}
 			// <div></div> -> abc
 			deleteChild(returnFiber, currentFiber)
+			currentFiber = currentFiber.sibling
 		}
 
 		const fiber = new FiberNode(HostText, { content }, null)
