@@ -79,21 +79,36 @@ const commitMutationEffectsOnFiber = (finishedWork: FiberNode) => {
 	}
 }
 
+const recordHostChildrenToDelete = (
+	childrenToDelete: FiberNode[],
+	unmountFiber: FiberNode
+) => {
+	const lastOne = childrenToDelete[childrenToDelete.length - 1]
+	if (!lastOne) {
+		childrenToDelete.push(unmountFiber)
+	} else {
+		let node = lastOne.sibling
+		while (node !== null) {
+			if (unmountFiber === node) {
+				childrenToDelete.push(unmountFiber)
+			}
+			node = node.sibling
+		}
+	}
+}
+
 const commitDeletion = (childToDelete: FiberNode) => {
-	let rootHostNode: FiberNode | null = null
+	// let rootHostNode: FiberNode | null = null
+	const rootChildrenToDelete: FiberNode[] = []
 	commitNestedComponent(childToDelete, (unmountFiber) => {
 		switch (unmountFiber.tag) {
 			case HostComponent:
-				if (rootHostNode === null) {
-					rootHostNode = unmountFiber
-				}
+				recordHostChildrenToDelete(rootChildrenToDelete, unmountFiber)
 				// TODO unbind ref
 
 				return
 			case HostText:
-				if (rootHostNode === null) {
-					rootHostNode = unmountFiber
-				}
+				recordHostChildrenToDelete(rootChildrenToDelete, unmountFiber)
 				return
 			case FunctionComponent:
 				// TODO useEffect unmount
@@ -106,10 +121,12 @@ const commitDeletion = (childToDelete: FiberNode) => {
 		}
 	})
 	// remove rootHostNode's dom
-	if (rootHostNode !== null) {
+	if (rootChildrenToDelete.length) {
 		const hostParent = getHostParent(childToDelete)
 		if (hostParent) {
-			removeChild((rootHostNode as FiberNode).stateNode, hostParent)
+			rootChildrenToDelete.forEach((node) => {
+				removeChild(node.stateNode, hostParent)
+			})
 		}
 	}
 

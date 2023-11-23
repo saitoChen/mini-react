@@ -5,7 +5,8 @@ import {
 	HostRoot,
 	HostText,
 	HostComponent,
-	FunctionComponent
+	FunctionComponent,
+	Fragment
 } from './workTags'
 import { reconcileChildFibers, mountChildFibers } from './childFiber'
 import { renderWithHooks } from './fiberhooks'
@@ -22,6 +23,8 @@ export const beginWork = (wip: FiberNode) => {
 			return null
 		case FunctionComponent:
 			return updateFunctionComponent(wip)
+		case Fragment:
+			return updateFragment(wip)
 		default:
 			if (__DEV__) {
 				console.warn('unknown type by beginWork')
@@ -70,4 +73,10 @@ const reconcileChildren = (wip: FiberNode, children?: ReactElementType) => {
 		// mount
 		wip.child = mountChildFibers(wip, null, children)
 	}
+}
+
+const updateFragment = (wip: FiberNode) => {
+	const nextChildren = wip.pendingProps
+	reconcileChildren(wip, nextChildren)
+	return wip.child
 }

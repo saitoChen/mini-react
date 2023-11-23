@@ -11,7 +11,7 @@ import {
 	ReactElementType,
 	ElementType
 } from 'shared/ReactTypes'
-import { REACT_ELEMENT_TYPE } from 'shared/ReactSymbols'
+import { REACT_ELEMENT_TYPE, REACT_FRAGMENT_TYPE } from 'shared/ReactSymbols'
 
 const ReactElement = (
 	type: Type,
@@ -83,6 +83,8 @@ const handleChildren = (children: any[], props: any) => {
 		}
 	}
 }
+
+export const Fragment = REACT_FRAGMENT_TYPE
 
 export const jsxDEV = (type: ElementType, config: any) => {
 	const props: Props = {}
