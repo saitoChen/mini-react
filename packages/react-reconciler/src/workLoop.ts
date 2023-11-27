@@ -9,6 +9,15 @@ import { completeWork } from './completeWork'
 import { HostRoot } from './workTags'
 import { MutationMask, NoFlags } from './fiberFlags'
 import { commitMutationEffects } from './commitWork'
+import {
+	Lane,
+	NoLane,
+	SyncLane,
+	getHighestPriorityLane,
+	mergeLanes
+} from './fiberLanes'
+import { flushSyncCallbacks, scheduleSyncCallback } from './syncTaskQueue'
+import { scheduleMicroTask } from 'hostConfig'
 
 let workInProgress: FiberNode | null = null
 
@@ -16,9 +25,30 @@ const prepareFreshStack = (root: FiberRootNode) => {
 	workInProgress = createWorkInProgress(root.current, {})
 }
 
-export const scheduleUpdateOnFiber = (fiber: FiberNode) => {
+export const scheduleUpdateOnFiber = (fiber: FiberNode, lane: Lane) => {
 	const root = markUpdateFromFiberToRoot(fiber)
-	renderRoot(root)
+	markRootUpdated(root, lane)
+	ensureRootIsScheduled(root)
+	// performSyncWorkOnRoot(root)
+}
+
+const ensureRootIsScheduled = (root: FiberRootNode) => {
+	const updateLane = getHighestPriorityLane(root.pendingLanes)
+	if (updateLane === NoLane) return // NoLane === no update
+	if (updateLane === SyncLane) {
+		// sync priority, use micro task
+		if (__DEV__) {
+			console.log('in microTask schedule:', updateLane)
+		}
+		scheduleSyncCallback(performSyncWorkOnRoot.bind(null, root, updateLane))
+		scheduleMicroTask(flushSyncCallbacks)
+	} else {
+		// use macro task
+	}
+}
+
+const markRootUpdated = (root: FiberRootNode, lane: Lane) => {
+	root.pendingLanes = mergeLanes(root.pendingLanes, lane)
 }
 
 const markUpdateFromFiberToRoot = (fiber: FiberNode) => {
@@ -34,7 +64,12 @@ const markUpdateFromFiberToRoot = (fiber: FiberNode) => {
 	return null
 }
 
-export const renderRoot = (root: FiberRootNode) => {
+export const performSyncWorkOnRoot = (root: FiberRootNode, lane: Lane) => {
+	const nextLanes = getHighestPriorityLane(root.pendingLanes)
+	if (nextLanes !== SyncLane) {
+		ensureRootIsScheduled(root)
+		return
+	}
 	// initialize workInProgress
 	prepareFreshStack(root)
 
