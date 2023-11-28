@@ -10,11 +10,12 @@ import {
 } from './updateQueue'
 import { scheduleUpdateOnFiber } from './workLoop'
 import { Action } from 'shared/ReactTypes'
-import { requestUpdateLane } from './fiberLanes'
+import { Lane, NoLane, requestUpdateLane } from './fiberLanes'
 
 let currentlyRenderFiber: FiberNode | null = null
 let workInProgressHook: Hook | null = null
 let currentHook: Hook | null = null
+let renderLane: Lane = NoLane
 
 console.log('internals ->', internals)
 
@@ -26,10 +27,10 @@ interface Hook {
 	next: Hook | null
 }
 
-export const renderWithHooks = (wip: FiberNode) => {
+export const renderWithHooks = (wip: FiberNode, lane: Lane) => {
 	currentlyRenderFiber = wip
 	wip.memorizedState = null
-
+	renderLane = lane
 	const current = wip.alternate
 
 	if (current !== null) {
@@ -49,6 +50,7 @@ export const renderWithHooks = (wip: FiberNode) => {
 	currentlyRenderFiber = null
 	workInProgressHook = null
 	currentHook = null
+	renderLane = NoLane
 	return children
 }
 
@@ -63,7 +65,7 @@ const mountState = <State>(
 	} else {
 		memorizedState = initialState
 	}
-
+	hook.memorizedState = memorizedState
 	const queue = createUpdateQueue<State>()
 	hook.updateQueue = queue
 
@@ -114,7 +116,11 @@ const updateState = <State>(): [State, Dispatch<State>] => {
 	const pending = queue.shared.pending
 
 	if (pending !== null) {
-		const { memorizedState } = processUpdateQueue(hook.memorizedState, pending)
+		const { memorizedState } = processUpdateQueue(
+			hook.memorizedState,
+			pending,
+			renderLane
+		)
 		hook.memorizedState = memorizedState
 	}
 

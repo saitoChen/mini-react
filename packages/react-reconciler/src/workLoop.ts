@@ -14,15 +14,18 @@ import {
 	NoLane,
 	SyncLane,
 	getHighestPriorityLane,
+	markRootFinished,
 	mergeLanes
 } from './fiberLanes'
 import { flushSyncCallbacks, scheduleSyncCallback } from './syncTaskQueue'
 import { scheduleMicroTask } from 'hostConfig'
 
 let workInProgress: FiberNode | null = null
+let wipRootRenderLane: Lane = NoLane
 
-const prepareFreshStack = (root: FiberRootNode) => {
+const prepareFreshStack = (root: FiberRootNode, lane: Lane) => {
 	workInProgress = createWorkInProgress(root.current, {})
+	wipRootRenderLane = lane
 }
 
 export const scheduleUpdateOnFiber = (fiber: FiberNode, lane: Lane) => {
@@ -71,7 +74,7 @@ export const performSyncWorkOnRoot = (root: FiberRootNode, lane: Lane) => {
 		return
 	}
 	// initialize workInProgress
-	prepareFreshStack(root)
+	prepareFreshStack(root, lane)
 
 	do {
 		try {
@@ -88,6 +91,8 @@ export const performSyncWorkOnRoot = (root: FiberRootNode, lane: Lane) => {
 	const finishedWork = root.current.alternate
 	// finishedWork is wip
 	root.finishedWork = finishedWork
+	root.finishedLane = lane
+	wipRootRenderLane = NoLane
 
 	commitRoot(root)
 }
@@ -99,8 +104,17 @@ const commitRoot = (root: FiberRootNode) => {
 	if (finishedWork === null) return
 	if (__DEV__) console.warn('commit start', finishedWork)
 
+	const lane = root.finishedLane
+
+	if (lane === NoLane && __DEV__) {
+		console.warn('There is not supposed to be NoLane at commit stage')
+	}
+
 	// reset
 	root.finishedWork = null
+	root.finishedLane = NoLane
+
+	markRootFinished(root, lane)
 
 	const subtreeHasEffect =
 		(finishedWork.subtreeFlags & MutationMask) !== NoFlags
@@ -127,7 +141,7 @@ const workLoop = () => {
 }
 
 const performUnitOfWork = (fiber: FiberNode) => {
-	const next = beginWork(fiber)
+	const next = beginWork(fiber, wipRootRenderLane)
 	fiber.memorizedProps = fiber.pendingProps
 
 	if (next === null) {

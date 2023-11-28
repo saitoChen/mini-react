@@ -62,19 +62,33 @@ export const enqueueUpdate = <State>(
 // consume update
 export const processUpdateQueue = <State>(
 	baseState: State,
-	pendingUpdate: Update<State> | null
+	pendingUpdate: Update<State> | null,
+	renderLane: Lane
 ): { memorizedState: State } => {
 	const result: ReturnType<typeof processUpdateQueue<State>> = {
 		memorizedState: baseState
 	}
 	if (pendingUpdate !== null) {
-		const action = pendingUpdate.action
-		if (typeof action === 'function') {
-			result.memorizedState = (action as (prevState: State) => State)(baseState)
-		} else {
-			result.memorizedState = action
-		}
+		// first update
+		const first = pendingUpdate.next
+		let pending = pendingUpdate.next as Update<any>
+		do {
+			const updateLane = pending.lane
+			if (updateLane === renderLane) {
+				const action = pendingUpdate.action
+				if (action instanceof Function) {
+					baseState = action(baseState)
+				} else {
+					baseState = action
+				}
+			} else {
+				if (__DEV__) {
+					console.error('processUpdateQueue has an error')
+				}
+			}
+			pending = pending?.next as Update<any>
+		} while (pending !== first)
 	}
-
+	result.memorizedState = baseState
 	return result
 }

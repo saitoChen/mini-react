@@ -10,19 +10,20 @@ import {
 } from './workTags'
 import { reconcileChildFibers, mountChildFibers } from './childFiber'
 import { renderWithHooks } from './fiberhooks'
+import { Lane } from './fiberLanes'
 
-export const beginWork = (wip: FiberNode) => {
+export const beginWork = (wip: FiberNode, renderLane: Lane) => {
 	switch (wip.tag) {
 		case HostRoot:
 			// 1. update new State
 			// 2. return child fiberNode
-			return updateHostRoot(wip)
+			return updateHostRoot(wip, renderLane)
 		case HostComponent:
 			return updateHostComponent(wip)
 		case HostText:
 			return null
 		case FunctionComponent:
-			return updateFunctionComponent(wip)
+			return updateFunctionComponent(wip, renderLane)
 		case Fragment:
 			return updateFragment(wip)
 		default:
@@ -33,13 +34,13 @@ export const beginWork = (wip: FiberNode) => {
 	return null
 }
 
-const updateHostRoot = (wip: FiberNode) => {
+const updateHostRoot = (wip: FiberNode, renderLane: Lane) => {
 	const baseState = wip.memorizedState
 	const updateQueue = wip.updateQueue as UpdateQueue<Element>
 	const pending = updateQueue.shared.pending
 	updateQueue.shared.pending = null
 
-	const { memorizedState } = processUpdateQueue(baseState, pending)
+	const { memorizedState } = processUpdateQueue(baseState, pending, renderLane)
 
 	wip.memorizedState = memorizedState
 
@@ -49,8 +50,8 @@ const updateHostRoot = (wip: FiberNode) => {
 	return wip.child
 }
 
-const updateFunctionComponent = (wip: FiberNode) => {
-	const nextChildren = renderWithHooks(wip)
+const updateFunctionComponent = (wip: FiberNode, renderLane: Lane) => {
+	const nextChildren = renderWithHooks(wip, renderLane)
 	reconcileChildren(wip, nextChildren)
 	return wip.child
 }
