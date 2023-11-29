@@ -11,6 +11,8 @@ import {
 import { scheduleUpdateOnFiber } from './workLoop'
 import { Action } from 'shared/ReactTypes'
 import { Lane, NoLane, requestUpdateLane } from './fiberLanes'
+import { Flags, PassiveEffect } from './fiberFlags'
+import { HookHasEffect, Passive } from './hookEffectTags'
 
 let currentlyRenderFiber: FiberNode | null = null
 let workInProgressHook: Hook | null = null
@@ -26,6 +28,20 @@ interface Hook {
 	updateQueue: unknown
 	next: Hook | null
 }
+export interface Effect {
+	tag: Flags
+	create: EffectCallback | void
+	destory: EffectCallback | void
+	deps: EffectDeps
+	next: Effect | null
+}
+
+export interface FCUpdateQueue<State> extends UpdateQueue<State> {
+	lastEffect: Effect | null
+}
+
+type EffectCallback = () => void
+type EffectDeps = any[] | null
 
 export const renderWithHooks = (wip: FiberNode, lane: Lane) => {
 	currentlyRenderFiber = wip
@@ -114,6 +130,7 @@ const updateState = <State>(): [State, Dispatch<State>] => {
 	// calculate state
 	const queue = hook.updateQueue as UpdateQueue<State>
 	const pending = queue.shared.pending
+	queue.shared.pending = null
 
 	if (pending !== null) {
 		const { memorizedState } = processUpdateQueue(
@@ -127,12 +144,73 @@ const updateState = <State>(): [State, Dispatch<State>] => {
 	return [hook.memorizedState, queue.dispatch as Dispatch<State>]
 }
 
+const mountEffect = (
+	create: EffectCallback | void,
+	deps: EffectDeps | void
+) => {
+	const hook = mountWorkInProgressHook()
+	const nextDeps = deps === undefined ? null : deps
+
+	;(currentlyRenderFiber as FiberNode).flags |= PassiveEffect
+
+	hook.memorizedState = pushEffect(
+		Passive | HookHasEffect,
+		create,
+		undefined,
+		nextDeps
+	)
+}
+
 const HookDispatcherOnMount: Dispatcher = {
-	useState: mountState
+	useState: mountState,
+	useEffect: mountEffect
 }
 
 const HookDispatcherOnUpdate: Dispatcher = {
-	useState: updateState
+	useState: updateState,
+	useEffect: mountEffect
+}
+
+const pushEffect = (
+	hookFlags: Flags,
+	create: EffectCallback | void,
+	destory: EffectCallback | void,
+	deps: EffectDeps
+): Effect => {
+	const effect: Effect | null = {
+		tag: hookFlags,
+		create,
+		destory,
+		deps,
+		next: null
+	}
+	const fiber = currentlyRenderFiber as FiberNode
+	const updateQueue = fiber.updateQueue as FCUpdateQueue<any>
+
+	if (updateQueue === null) {
+		const updateQueue = createFCUpdateQueue()
+		fiber.updateQueue = updateQueue
+		effect.next = effect
+		updateQueue.lastEffect = effect
+	} else {
+		const lastEffect = updateQueue.lastEffect
+		if (lastEffect === null) {
+			effect.next = effect
+			updateQueue.lastEffect = effect
+		} else {
+			const firstEffect = lastEffect.next
+			lastEffect.next = effect
+			effect.next = firstEffect
+			updateQueue.lastEffect = effect
+		}
+	}
+	return effect
+}
+
+const createFCUpdateQueue = <State>() => {
+	const updateQueue = createUpdateQueue<State>() as FCUpdateQueue<State>
+	updateQueue.lastEffect = null
+	return updateQueue
 }
 
 const updateWorkInProgressHook = (): Hook => {

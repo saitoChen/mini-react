@@ -1,3 +1,8 @@
+/*
+ * @Author: chenjianfeng chenjianfeng93@163.com
+ * @Date: 2023-11-27 21:42:25
+ * @Description:
+ */
 let syncQueue: ((...args: any) => void)[] | null = null
 let isFlushingSyncQueue = false
 export const scheduleSyncCallback = (
@@ -21,6 +26,7 @@ export const flushSyncCallbacks = () => {
 			}
 		} finally {
 			isFlushingSyncQueue = false
+			syncQueue = null
 		}
 	}
 }
