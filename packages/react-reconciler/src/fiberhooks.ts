@@ -46,6 +46,7 @@ type EffectDeps = any[] | null
 export const renderWithHooks = (wip: FiberNode, lane: Lane) => {
 	currentlyRenderFiber = wip
 	wip.memorizedState = null
+	wip.updateQueue = null
 	renderLane = lane
 	const current = wip.alternate
 
@@ -161,6 +162,50 @@ const mountEffect = (
 	)
 }
 
+const updateEffect = (
+	create: EffectCallback | void,
+	deps: EffectDeps | void
+) => {
+	const hook = updateWorkInProgressHook()
+	const nextDeps = deps === undefined ? null : deps
+	let destory: EffectCallback | void
+
+	if (currentHook !== null) {
+		const prevEffect = currentHook.memorizedState as Effect
+		destory = prevEffect.destory
+
+		if (nextDeps !== null) {
+			const prevDeps = prevEffect.deps
+
+			if (areHookInputsEqual(nextDeps, prevDeps)) {
+				console.log('currentFiber ->', currentlyRenderFiber)
+				hook.memorizedState = pushEffect(Passive, create, destory, nextDeps)
+				return
+			}
+		}
+		;(currentlyRenderFiber as FiberNode).flags |= PassiveEffect
+		hook.memorizedState = pushEffect(
+			Passive | HookHasEffect,
+			create,
+			destory,
+			nextDeps
+		)
+	}
+}
+
+const areHookInputsEqual = (nextDeps: EffectDeps, prevDeps: EffectDeps) => {
+	if (prevDeps === null || nextDeps === null) {
+		return false
+	}
+	for (let i = 0; i < prevDeps.length && i < nextDeps.length; i++) {
+		if (Object.is(prevDeps[i], nextDeps[i])) {
+			continue
+		}
+		return false
+	}
+	return true
+}
+
 const HookDispatcherOnMount: Dispatcher = {
 	useState: mountState,
 	useEffect: mountEffect
@@ -168,7 +213,7 @@ const HookDispatcherOnMount: Dispatcher = {
 
 const HookDispatcherOnUpdate: Dispatcher = {
 	useState: updateState,
-	useEffect: mountEffect
+	useEffect: updateEffect
 }
 
 const pushEffect = (
