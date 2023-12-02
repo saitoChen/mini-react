@@ -62,7 +62,6 @@ const commitMutationEffectsOnFiber = (
 	finishedWork: FiberNode,
 	root: FiberRootNode
 ) => {
-	debugger
 	const flags = finishedWork.flags
 	if ((flags & Placement) !== NoFlags) {
 		commitPlacement(finishedWork)
